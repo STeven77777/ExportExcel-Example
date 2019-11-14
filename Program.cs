@@ -16,6 +16,38 @@ namespace ConsoleApp1
         static void Main(string[] args)
         {
 
+            ExportExcelWithoutHeader();
+
+
+            ExportExcelWithHeader();
+        }
+
+        private static void ExportExcelWithoutHeader()
+        {
+            var list = new List<string>();
+            list.Add("H|20190503|500882019000004|");
+            list.Add("D|1|20190502|PDB01|999999999999999|00000001|70838155100000011|Sales|500.00|FuelSales|A01922381|transaction-01|Y|");
+            list.Add("D|1|20190502|PDB01|999999999999999|00000001|70838155100000011|Sales|500.00|FuelSales|A01922381|transaction-02|Y|");
+            list.Add("D|1|20190502|PDB01|999999999999999|00000001|70838155100000011|Sales|500.00|FuelSales|A01922381|transaction-03|Y|");
+            list.Add("D|1|20190502|PDB01|999999999999999|00000001|70838155100000011|Sales|500.00|FuelSales|A01922381|transaction-04|Y|");
+            list.Add("D|1|20190502|PDB01|999999999999999|00000001|70838155100000011|Sales|500.00|FuelSales|A01922381|transaction-05|N|");
+            list.Add("D|1|20190502|PDB01|999999999999999|00000001|70838155100000011|Sales|500.00|FuelSales|A01922381|transaction-06|Y|");
+            list.Add("D|1|20190502|PDB01|999999999999999|00000001|70838155100000011|Sales|500.00|FuelSales|A01922381|transaction-07|Y|");
+            list.Add("D|1|20190502|PDB01|999999999999999|00000001|70838155100000011|Sales|500.00|FuelSales|A01922381|transaction-08|Y|");
+            list.Add("T|8|2450.00|4|4|0|4|1550.00|3|1|");
+
+            var toExport = new List<string>();
+            foreach (var item in list)
+            {
+                toExport.Add(item);
+            }
+            var ExcelPkg = CreateExcel(list);
+            FileInfo file = new FileInfo(Directory.GetCurrentDirectory() + @"\" + DateTime.Now.ToString("yyyyMMddHHmmssffftt") + ".xlsx");
+            ExcelPkg.SaveAs(file);
+        }
+
+        private static void ExportExcelWithHeader()
+        {
             var list = new List<VehiclesListModel>();
             list.Add(new VehiclesListModel { AppcId = "111", CardExpiry = "201912", CardNo = "Card No", VehRegtNo = "VehRegtNo" });
             list.Add(new VehiclesListModel { AppcId = "111", CardExpiry = "201912", CardNo = "Card No", VehRegtNo = "VehRegtNo" });
@@ -35,8 +67,26 @@ namespace ConsoleApp1
             //at controller
             // return File(ExcelPkg.GetAsByteArray(), "application/vnd.ms-excel", title + ".xlsx");
             //at win
-            FileInfo file = new FileInfo(@"C:\Users\tung.pham\source\repos\ConsoleApp1\" + DateTime.Now.ToString("yyyyMMddHHmmss") + ".xlsx");
+            FileInfo file = new FileInfo(Directory.GetCurrentDirectory() + @"\" + DateTime.Now.ToString("yyyyMMddHHmmssffftt") + "_WithHeader.xlsx");
             ExcelPkg.SaveAs(file);
+        }
+
+        public static ExcelPackage CreateExcel(List<string> listValue)
+        {
+            int colIndex = 1, rowIndex = 1;
+            var pkg = PrepareExcelHeader();
+            var ws = pkg.Workbook.Worksheets[1];
+            var cell = ws.Cells[rowIndex, colIndex];
+            foreach (var value in listValue)
+            {
+                cell = ws.Cells[rowIndex, colIndex];
+                cell.Value = value;
+                colIndex++;
+                colIndex = 1;
+                rowIndex++;
+            }
+            ws.Cells[ws.Dimension.Address].AutoFitColumns();
+            return pkg;
         }
 
         public static ExcelPackage CreateExcel(string[] Headers, List<string[]> Rows, string Title = "Report")
@@ -45,6 +95,11 @@ namespace ConsoleApp1
             var pkg = PrepareExcelHeader(Title, Headers);
             var ws = pkg.Workbook.Worksheets[1];
             var cell = ws.Cells[rowIndex, colIndex];
+
+            var border = ws.Cells[rowIndex, colIndex, Rows.Count + rowIndex - 1, Headers.Length].Style.Border;
+            border.Bottom.Style = border.Top.Style = border.Left.Style = border.Right.Style = ExcelBorderStyle.Thin;
+
+
             foreach (var rowVal in Rows)
             {
                 foreach (var CellValue in rowVal)
@@ -57,6 +112,8 @@ namespace ConsoleApp1
                 colIndex = 1;
                 rowIndex++;
             }
+            
+
             ws.Cells[ws.Dimension.Address].AutoFitColumns();
             return pkg;
         }
@@ -69,16 +126,12 @@ namespace ConsoleApp1
             ws.Cells.Style.Font.Size = 11;
             ws.Cells.Style.Font.Name = "Calibri";
             ws.Cells[1, 1].Value = heading;
-            ws.Cells[1, 1, 1, 20].Merge = true;
-            ws.Cells[1, 1, 1, 20].Style.Font.Bold = true;
-            ws.Cells[1, 1, 1, 20].Style.Fill.PatternType = ExcelFillStyle.Solid;
-            ws.Cells[1, 1, 1, 20].Style.Fill.BackgroundColor.SetColor(Color.Gray);
-            ws.Cells[1, 1, 1, 20].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
-            //var fill = ws.Cells.Style.Fill;
-            //fill.PatternType = ExcelFillStyle.Solid;
-            //fill.BackgroundColor.SetColor(Color.Gray);
-            var border = ws.Cells.Style.Border;
-            border.Bottom.Style = border.Top.Style = border.Left.Style = border.Right.Style = ExcelBorderStyle.Thin;
+            ws.Cells[1, 1, 1, colnames.Length].Merge = true;
+            ws.Cells[1, 1, 1, colnames.Length].Style.Font.Bold = true;
+            ws.Cells[1, 1, 1, colnames.Length].Style.Fill.PatternType = ExcelFillStyle.Solid;
+            ws.Cells[1, 1, 1, colnames.Length].Style.Fill.BackgroundColor.SetColor(Color.Gray);
+            ws.Cells[1, 1, 1, colnames.Length].Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+            
             int colIndex = 1, rowIndex = 3;
             var cell = ws.Cells[rowIndex, colIndex];
             foreach (var col in colnames)
@@ -89,12 +142,25 @@ namespace ConsoleApp1
                 cell.Style.Font.Bold = true;
                 cell.Style.Fill.BackgroundColor.SetColor(Color.Black);
                 cell.Style.Font.Color.SetColor(Color.White);
+                cell.Style.HorizontalAlignment = OfficeOpenXml.Style.ExcelHorizontalAlignment.Center;
+                cell.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
                 colIndex++;
             }
 
 
 
 
+            return ExcelPkg;
+        }
+
+        public static ExcelPackage PrepareExcelHeader()
+        {
+            var ExcelPkg = new ExcelPackage();
+            ExcelPkg.Workbook.Worksheets.Add("Reconciliation File");
+            ExcelWorksheet ws = ExcelPkg.Workbook.Worksheets[1];
+            ws.Name = "Reconciliation File";
+            ws.Cells.Style.Font.Size = 11;
+            ws.Cells.Style.Font.Name = "Calibri";
             return ExcelPkg;
         }
     }
